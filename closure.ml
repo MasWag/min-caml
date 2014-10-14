@@ -104,3 +104,63 @@ let f e =
   toplevel := [];
   let e' = g M.empty S.empty e in
   Prog(List.rev !toplevel, e')
+
+let rec string_of_t e =
+  match e with
+  | Unit -> "UNIT"
+  | Int i -> "INT " ^ (string_of_int i)
+  | Float f -> "FLOAT " ^ (string_of_float f)
+  | Neg i -> "NEG " ^ i
+  | Add (a, b) -> "ADD\n" ^ Str.global_replace (Str.regexp "^") "\t" (a ^ "\n" ^ b) ^ "\n"
+  | Sub (a, b) -> "SUB\n" ^ Str.global_replace (Str.regexp "^") "\t" (a ^ "\n" ^ b) ^ "\n"
+  | FNeg f -> "FNEG " ^ f
+  | FAdd (a, b) -> "FADD\n" ^ Str.global_replace (Str.regexp "^") "\t" (a ^ "\n" ^ b) ^ "\n"
+  | FSub (a, b) -> "FSUB\n" ^ Str.global_replace (Str.regexp "^") "\t" (a ^ "\n" ^ b) ^ "\n"
+  | FMul (a, b) -> "FMUL\n" ^ Str.global_replace (Str.regexp "^") "\t" (a ^ "\n" ^ b) ^ "\n"
+  | FDiv (a, b) -> "FDIV\n" ^ Str.global_replace (Str.regexp "^") "\t" (a ^ "\n" ^ b) ^ "\n"
+  | IfEq (n, m, i, e) -> "IF\n" ^ 
+			   Str.global_replace (Str.regexp "^") "\t" 
+					      ("EQ\n" ^ 
+						 (Str.global_replace (Str.regexp "^") "\t" (n ^ "\n" ^ m ))
+						 ^ "\n" ^ (string_of_t i) ^ "\n" ^ (string_of_t e))
+			   ^ "\n"
+  | IfLE (n, m, i, e) -> "IF\n" ^ 
+			   Str.global_replace (Str.regexp "^") "\t" 
+					      ("LE\n" ^ 
+						 (Str.global_replace (Str.regexp "^") "\t" (n ^ "\n" ^ m))
+						 ^ "\n" ^ (string_of_t i) ^ "\n" ^ (string_of_t e))
+			   ^ "\n"
+  | Let ((id,ty), t1, t2) -> "LET\n" ^ Str.global_replace (Str.regexp "^") "\t" ("(" ^ id ^ ":" ^ Type.string_of_t ty ^ ")\n" ^ string_of_t t1 ^ "\n" ^ string_of_t t2) ^ "\n"
+  | Var i -> "VAR\n" ^ i ^ "\n"
+  | MakeCls ((n,_), _, t) -> "MAKE_CLS " ^ n ^ "\n" ^ Str.global_replace (Str.regexp "^") "\t" (string_of_t t)(* of (Id.t * Type.t) * closure * t *)
+  | AppCls (cls, args) -> (string_of_cls (cls::args))
+  | AppDir (Id.L cls, args) -> (string_of_cls (cls::args))
+  | Tuple is -> "(" ^ string_of_tuple is ^ ")"
+  | LetTuple (_, _, _) -> "LET_TUPLE:not yet"(* of (Id.t * Type.t) list * Id.t * t *)
+  | Get (a, b) -> "GET " ^ a ^ " " ^ b 
+  | Put (a, b, c) -> "PUT " ^ a ^ " " ^ b ^ " " ^ c
+  | ExtArray (Id.L l) -> "EXT_ARRAY " ^ l
+and string_of_tuple t =
+  match t with
+  | [] -> ""
+  | a::[] -> a
+  | a::d -> a ^ " , " ^ (string_of_tuple d)
+and string_of_cls t =
+  match t with
+  | [] -> ""
+  | a::[] -> a
+  | a::d -> a ^ " " ^ (string_of_cls d)
+
+
+let f_t oc e =
+  let Prog (l,e') = f e in
+  Printf.fprintf oc "%s\n" 
+		 (List.fold_left 
+		    (fun s f -> 
+		     let (Id.L func_name,_) = f.name in 
+		     let func_args= List.fold_left 
+				      (fun s (n,_) -> 
+				       s ^ " " ^ n
+				      ) "" f.args in
+		     s ^ "DEF " ^ func_name ^ " " ^ func_args ^ "\n" ^ string_of_t f.body) "" l);
+  Printf.fprintf oc "%s\n" (string_of_t e')

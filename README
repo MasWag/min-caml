@@ -46,3 +46,8 @@ http://esumii.github.io/min-caml/paper.pdf (English academic paper)
 
 - The register allocator now uses a simpler algorithm.  It omits the
   backtracking (ToSpill and NoSpill) in previous versions.
+
+Extensions
+==========
+
+* -t option : generate intermediate code

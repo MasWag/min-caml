@@ -1,4 +1,5 @@
 type t = string (* 変数の名前 (caml2html: id_t) *)
+let string_of_t t = t
 type l = L of string (* トップレベル関数やグローバル配列のラベル (caml2html: id_l) *)
 
 let rec pp_list = function
