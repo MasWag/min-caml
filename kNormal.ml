@@ -49,6 +49,15 @@ let insert_let (e, t) k = (* letを挿入する補助関数 (caml2html: knormal_insert) *
       let e', t' = k x in
       Let((x, t), e, e'), t'
 
+let rec i2f x = 
+  match x with
+    Syntax.Int (i) -> Syntax.Float (float_of_int (i))
+  | Syntax.Not (e) -> Syntax.Not (i2f e)
+  | Syntax.Neg (e) -> Syntax.Neg (i2f e)
+  | Syntax.Add (e1, e2) -> Syntax.FAdd (i2f e1,i2f e2)
+  | Syntax.Sub (e1, e2) -> Syntax.FSub (i2f e1,i2f e2)
+  | _ -> x
+
 let rec g env = function (* K正規化ルーチン本体 (caml2html: knormal_g) *)
   | Syntax.Unit -> Unit, Type.Unit
   | Syntax.Bool(b) -> Int(if b then 1 else 0), Type.Int (* 論理値true, falseを整数1, 0に変換 (caml2html: knormal_bool) *)
@@ -59,9 +68,16 @@ let rec g env = function (* K正規化ルーチン本体 (caml2html: knormal_g) *)
       insert_let (g env e)
 	(fun x -> Neg(x), Type.Int)
   | Syntax.Add(e1, e2) -> (* 足し算のK正規化 (caml2html: knormal_add) *)
+     if snd(g env e1) == Type.Float ||
+	  snd (g env e2) == Type.Float then begin
+	 insert_let ((fst(g env (i2f e1))),Type.Float)
+	   (fun x -> insert_let ((fst(g env (i2f e2))),Type.Float)
+	       (fun y -> FAdd(x, y), Type.Float))
+       end else begin
       insert_let (g env e1)
 	(fun x -> insert_let (g env e2)
 	    (fun y -> Add(x, y), Type.Int))
+       end
   | Syntax.Sub(e1, e2) ->
       insert_let (g env e1)
 	(fun x -> insert_let (g env e2)
