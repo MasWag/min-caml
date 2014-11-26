@@ -1,7 +1,9 @@
 %{
 (* parserが利用する変数、関数、型などの定義 *)
 open Syntax
-let addtyp x = (x, Type.gentyp ())
+let addtyp x = (x, Type.gentyp ());;
+let t = ref 0;;
+let gentoken ()= t := !t + 1;"__lambda" ^ string_of_int(!t)
 %}
 
 /* 字句を表すデータ型の定義 (caml2html: parser_token) */
@@ -36,6 +38,8 @@ let addtyp x = (x, Type.gentyp ())
 %token LPAREN
 %token RPAREN
 %token EOF
+%token FUN
+%token ARROW
 
 /* 優先順位とassociativityの定義（低い方から高い方へ） (caml2html: parser_prior) */
 %right prec_let
@@ -71,6 +75,9 @@ simple_exp: /* 括弧をつけなくても関数の引数になれる式 (caml2html: parser_simple)
     { Var($1) }
 | simple_exp DOT LPAREN exp RPAREN
     { Get($1, $4) }
+| FUN formal_args ARROW exp
+    { let f = (gentoken()) in LetRec ({ name = addtyp f; args = $2; body = $4 }, Var(f))}
+
 
 exp: /* 一般の式 (caml2html: parser_exp) */
 | simple_exp
@@ -121,7 +128,7 @@ exp: /* 一般の式 (caml2html: parser_exp) */
     { LetRec($3, $5) }
 | exp actual_args
     %prec prec_app
-    { App($1, $2) }
+    { App($1, $2) } 
 | elems
     { Tuple($1) }
 | LET LPAREN pat RPAREN EQUAL exp IN exp
